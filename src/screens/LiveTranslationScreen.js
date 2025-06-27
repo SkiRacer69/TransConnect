@@ -27,6 +27,8 @@ import {
   Chip,
   ActivityIndicator,
 } from 'react-native-paper';
+import * as Device from 'expo-device';
+import UserService from '../services/UserService';
 
 const languages = [
   { code: 'English', name: 'English', flag: '🇺🇸' },
@@ -59,6 +61,10 @@ export default function LiveTranslationScreen() {
   const [recording, setRecording] = useState(null);
   const [audioUri, setAudioUri] = useState(null);
   const [lastActionTime, setLastActionTime] = useState(0);
+  const [usage, setUsage] = useState(0);
+  const [subscription, setSubscription] = useState({ plan: 'free', usage: 0 });
+  const [deviceAllowed, setDeviceAllowed] = useState(true);
+  const WEEKLY_LIMITS = { free: 30, weekly: 180, monthly: 9999, yearly: 9999 };
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
@@ -105,6 +111,34 @@ export default function LiveTranslationScreen() {
     translationService.initialize(apiKey);
     speechService.initialize(apiKey);
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!user) return;
+      const deviceId = Device.osInternalBuildId || Device.deviceName || 'unknown-device';
+      const allowed = await UserService.checkDevice(user.id, deviceId);
+      setDeviceAllowed(allowed);
+      const sub = await UserService.getSubscription(user.id);
+      setSubscription(sub);
+      const used = await UserService.getUsage(user.id);
+      setUsage(used);
+    })();
+  }, [user]);
+
+  // Before starting translation, check usage
+  const canTranslate = () => {
+    const limit = WEEKLY_LIMITS[subscription.plan] || 30;
+    return usage < limit;
+  };
+
+  // After each translation, update usage
+  const afterTranslate = async (minutes) => {
+    if (user) {
+      await UserService.updateUsage(user.id, minutes);
+      const used = await UserService.getUsage(user.id);
+      setUsage(used);
+    }
+  };
 
   const startPulseAnimation = () => {
     Animated.loop(
@@ -240,6 +274,7 @@ export default function LiveTranslationScreen() {
         setTranslatedText(translation);
         // Save to history
         await saveToHistory(text, translation, 'voice');
+        await afterTranslate(minutesUsed);
       } else {
         setTranslatedText('Translation failed. Please try again.');
       }
@@ -256,11 +291,24 @@ export default function LiveTranslationScreen() {
     if (!translatedText) return;
 
     try {
-      await Speech.speak(translatedText, {
-        language: targetLanguage === 'Spanish' ? 'es' : 'en',
-        pitch: 1.0,
-        rate: 0.8,
-      });
+      // Use OpenAI GPT-4o TTS for speech
+      // Map targetLanguage to language code (default to 'en' if not found)
+      const languageMap = {
+        'English': 'en',
+        'Spanish': 'es',
+        'French': 'fr',
+        'German': 'de',
+        'Italian': 'it',
+        'Portuguese': 'pt',
+        'Russian': 'ru',
+        'Japanese': 'ja',
+        'Korean': 'ko',
+        'Chinese': 'zh',
+        'Arabic': 'ar',
+        'Hindi': 'hi',
+      };
+      const langCode = languageMap[targetLanguage] || 'en';
+      await speechService.speakWithOpenAITTS(translatedText, langCode);
     } catch (error) {
       console.error('Speech error:', error);
       Alert.alert('Error', 'Failed to speak translation');
@@ -335,6 +383,13 @@ export default function LiveTranslationScreen() {
   const textColor = theme?.colors?.onSurface || '#000000';
   const primaryColor = theme?.colors?.primary || '#1976D2';
   const surfaceVariantColor = theme?.colors?.surfaceVariant || '#f5f5f5';
+
+  if (!deviceAllowed) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Your subscription is active on another device.</Text></View>;
+  }
+  if (!canTranslate()) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>You have reached your weekly limit. Upgrade to continue.</Text></View>;
+  }
 
   return (
     <SafeAreaWrapper>

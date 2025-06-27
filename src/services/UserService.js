@@ -224,6 +224,78 @@ class UserService {
       throw error;
     }
   }
+
+  // Find user by ID or phone number
+  async findUserByIdOrPhone(idOrPhone) {
+    const users = await this.getAllUsers();
+    return users.find(u => u.id === idOrPhone || u.phoneNumber === idOrPhone);
+  }
+
+  // Set subscription plan and device ID
+  async setSubscription(userId, plan, deviceId) {
+    return this.updateUserProfile(userId, {
+      subscription: {
+        plan, // 'free', 'weekly', 'monthly', 'yearly'
+        startDate: new Date().toISOString(),
+        deviceId,
+        usage: 0, // minutes used in current period
+        lastReset: new Date().toISOString(),
+      },
+    });
+  }
+
+  // Get subscription info
+  async getSubscription(userId) {
+    const user = (await this.getAllUsers()).find(u => u.id === userId);
+    return user?.subscription || { plan: 'free', usage: 0 };
+  }
+
+  // Check if device matches subscription
+  async checkDevice(userId, deviceId) {
+    const sub = await this.getSubscription(userId);
+    return sub.deviceId === deviceId;
+  }
+
+  // Update usage (minutes)
+  async updateUsage(userId, minutes) {
+    const user = (await this.getAllUsers()).find(u => u.id === userId);
+    if (!user) return;
+    const sub = user.subscription || { usage: 0, lastReset: new Date().toISOString() };
+    // Reset if a week has passed
+    const now = new Date();
+    const lastReset = new Date(sub.lastReset);
+    const diffDays = (now - lastReset) / (1000 * 60 * 60 * 24);
+    if (diffDays >= 7) {
+      sub.usage = 0;
+      sub.lastReset = now.toISOString();
+    }
+    sub.usage = (sub.usage || 0) + minutes;
+    await this.updateUserProfile(userId, { subscription: sub });
+  }
+
+  // Get usage for current week
+  async getUsage(userId) {
+    const sub = await this.getSubscription(userId);
+    // Reset if a week has passed
+    const now = new Date();
+    const lastReset = new Date(sub.lastReset);
+    const diffDays = (now - lastReset) / (1000 * 60 * 60 * 24);
+    if (diffDays >= 7) {
+      await this.resetWeeklyUsage(userId);
+      return 0;
+    }
+    return sub.usage || 0;
+  }
+
+  // Reset weekly usage
+  async resetWeeklyUsage(userId) {
+    const user = (await this.getAllUsers()).find(u => u.id === userId);
+    if (!user) return;
+    const sub = user.subscription || {};
+    sub.usage = 0;
+    sub.lastReset = new Date().toISOString();
+    await this.updateUserProfile(userId, { subscription: sub });
+  }
 }
 
 export default new UserService(); 

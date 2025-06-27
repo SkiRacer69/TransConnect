@@ -15,6 +15,9 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SignInScreen from './src/screens/SignInScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import QRCodeScreen from './src/screens/QRCodeScreen';
+import NearbyScreen from './src/screens/NearbyScreen';
+import CallScreen from './src/screens/CallScreen';
 
 // Import context and theme
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -129,21 +132,10 @@ function AppNavigator() {
         {user ? (
           <>
             <Stack.Screen name="Main" component={TabNavigator} />
-            <Stack.Screen 
-              name="Profile" 
-              component={ProfileScreen}
-              options={{
-                headerShown: true,
-                title: 'Edit Profile',
-                headerStyle: {
-                  backgroundColor: theme.colors.primary,
-                },
-                headerTintColor: theme.colors.onPrimary,
-                headerTitleStyle: {
-                  fontWeight: 'bold',
-                },
-              }}
-            />
+            <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: true, title: 'Edit Profile', headerStyle: { backgroundColor: theme.colors.primary }, headerTintColor: theme.colors.onPrimary, headerTitleStyle: { fontWeight: 'bold' }, }} />
+            <Stack.Screen name="QRCode" component={QRCodeScreen} options={{ headerShown: true, title: 'QR Code Connect' }} />
+            <Stack.Screen name="Nearby" component={NearbyScreen} options={{ headerShown: true, title: 'Nearby Users' }} />
+            <Stack.Screen name="Call" component={CallScreen} options={{ headerShown: false }} />
           </>
         ) : (
           <Stack.Screen name="SignIn" component={SignInScreen} />

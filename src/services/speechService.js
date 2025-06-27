@@ -225,6 +225,60 @@ class SpeechService {
   isLanguageSupported(languageCode) {
     return languageCode in this.supportedLanguages;
   }
+
+  // Generate and play speech using OpenAI GPT-4o TTS
+  async speakWithOpenAITTS(text, languageCode = 'en') {
+    if (!this.apiKey) {
+      throw new Error('API key not configured');
+    }
+    // Map language code to OpenAI TTS voice
+    // 'onyx' (English), 'nova' (Spanish), 'shimmer' (French), default to 'onyx'
+    const voiceMap = {
+      'en': 'onyx',
+      'es': 'nova',
+      'fr': 'shimmer',
+      // Add more mappings as OpenAI releases more voices
+    };
+    const voice = voiceMap[languageCode] || 'onyx';
+    try {
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: text,
+          voice: voice,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI TTS error: ${response.status} - ${errorText}`);
+      }
+      // Get audio data as a blob
+      const audioData = await response.blob();
+      // Save to a local file
+      const fileReaderInstance = new FileReader();
+      return new Promise((resolve, reject) => {
+        fileReaderInstance.onloadend = async () => {
+          const base64data = fileReaderInstance.result.split(',')[1];
+          const fileUri = `${FileSystem.cacheDirectory}openai_tts.mp3`;
+          await FileSystem.writeAsStringAsync(fileUri, base64data, { encoding: FileSystem.EncodingType.Base64 });
+          // Play the audio
+          const { sound } = await Audio.Sound.createAsync({ uri: fileUri });
+          await sound.playAsync();
+          resolve();
+        };
+        fileReaderInstance.onerror = reject;
+        fileReaderInstance.readAsDataURL(audioData);
+      });
+    } catch (error) {
+      console.error('OpenAI TTS error:', error);
+      throw error;
+    }
+  }
 }
 
 // Create and export singleton instance

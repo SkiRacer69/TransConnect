@@ -46,6 +46,20 @@ export default function HomeScreen() {
       color: theme.colors.tertiary,
       onPress: () => navigation.navigate('Live Translation'),
     },
+    {
+      title: 'QR Code Connect',
+      subtitle: 'Connect via QR code',
+      icon: 'qr-code',
+      color: theme.colors.primary,
+      onPress: () => navigation.navigate('QRCode'),
+    },
+    {
+      title: 'Nearby Find',
+      subtitle: 'Find users nearby',
+      icon: 'location',
+      color: theme.colors.secondary,
+      onPress: () => navigation.navigate('Nearby'),
+    },
   ];
 
   const recentTranslations = [
