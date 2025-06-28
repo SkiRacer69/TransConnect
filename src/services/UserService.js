@@ -56,9 +56,9 @@ class UserService {
     }
 
     // Validate phone number format (basic validation)
-    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+    const phoneRegex = /^\+\d{1,4}\d{7,15}$/;
     if (!phoneRegex.test(phoneNumber)) {
-      throw new Error('Please enter a valid phone number');
+      throw new Error('Please enter a valid phone number with country code');
     }
 
     // Validate password

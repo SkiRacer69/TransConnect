@@ -20,6 +20,7 @@ import {
 } from 'react-native-paper';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import PhoneInput from '../components/PhoneInput';
 
 const ProfileScreen = ({ navigation }) => {
   const { theme } = useTheme();
@@ -51,8 +52,8 @@ const ProfileScreen = ({ navigation }) => {
     }
     if (!phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required';
-    } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(phoneNumber)) {
-      newErrors.phoneNumber = 'Please enter a valid phone number';
+    } else if (!/^\+\d{1,4}\d{7,15}$/.test(phoneNumber)) {
+      newErrors.phoneNumber = 'Please enter a valid phone number with country code';
     }
 
     setErrors(newErrors);
@@ -156,15 +157,11 @@ const ProfileScreen = ({ navigation }) => {
               {errors.email}
             </HelperText>
 
-            <TextInput
-              label="Phone Number"
+            <PhoneInput
               value={phoneNumber}
               onChangeText={setPhoneNumber}
-              mode="outlined"
-              style={styles.input}
               error={!!errors.phoneNumber}
-              keyboardType="phone-pad"
-              placeholder="+1 (555) 123-4567"
+              placeholder="Enter phone number"
             />
             <HelperText type="error" visible={!!errors.phoneNumber}>
               {errors.phoneNumber}
