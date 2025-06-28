@@ -7,6 +7,9 @@
       "eas": {
         "projectId": "48fc5539-1332-4e9f-ab4e-81552e7f5ddf"
       }
+    },
+    "android": {
+      "package": "com.andyzhang1.TransConnection"
     }
   }
 }

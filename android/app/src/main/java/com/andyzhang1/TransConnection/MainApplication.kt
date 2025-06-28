@@ -1,4 +1,4 @@
-package com.transconnection
+package com.andyzhang1.TransConnection
 
 import android.app.Application
 import android.content.res.Configuration
