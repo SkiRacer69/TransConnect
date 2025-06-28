@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import QRCode from 'react-native-qrcode-svg';
+import QRCode from 'qrcode';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { Card, Button } from 'react-native-paper';
@@ -12,6 +12,7 @@ export default function QRCodeScreen() {
   const navigation = useNavigation();
   const [hasPermission, setHasPermission] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -19,6 +20,22 @@ export default function QRCodeScreen() {
       setHasPermission(status === 'granted');
     })();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      generateQRCode();
+    }
+  }, [user]);
+
+  const generateQRCode = async () => {
+    try {
+      const data = user.id || user.phoneNumber;
+      const qrCodeUrl = await QRCode.toDataURL(data);
+      setQrCodeDataUrl(qrCodeUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  };
 
   const handleBarCodeScanned = async ({ data }) => {
     setScanning(false);
@@ -44,7 +61,13 @@ export default function QRCodeScreen() {
       <Card style={styles.card}>
         <Card.Title title="Your QR Code" />
         <Card.Content>
-          {user && <QRCode value={user.id || user.phoneNumber} size={200} />}
+          {qrCodeDataUrl && (
+            <Image 
+              source={{ uri: qrCodeDataUrl }} 
+              style={styles.qrCode} 
+              resizeMode="contain"
+            />
+          )}
         </Card.Content>
       </Card>
       <Button mode="contained" onPress={() => setScanning(!scanning)} style={styles.button}>
@@ -65,4 +88,5 @@ const styles = StyleSheet.create({
   card: { marginBottom: 24, width: '100%', alignItems: 'center' },
   button: { marginVertical: 16 },
   scanner: { width: 300, height: 300, marginTop: 16 },
+  qrCode: { width: 200, height: 200 },
 }); 
