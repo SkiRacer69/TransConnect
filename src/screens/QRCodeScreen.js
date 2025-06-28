@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import QRCode from 'qrcode';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { Camera } from 'expo-camera';
+import QRCodeSVG from 'react-native-qrcode-svg';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { Card, Button } from 'react-native-paper';
@@ -12,32 +12,18 @@ export default function QRCodeScreen() {
   const navigation = useNavigation();
   const [hasPermission, setHasPermission] = useState(null);
   const [scanning, setScanning] = useState(false);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [scanned, setScanned] = useState(false);
+  const cameraRef = useRef(null);
 
   useEffect(() => {
     (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      generateQRCode();
-    }
-  }, [user]);
-
-  const generateQRCode = async () => {
-    try {
-      const data = user.id || user.phoneNumber;
-      const qrCodeUrl = await QRCode.toDataURL(data);
-      setQrCodeDataUrl(qrCodeUrl);
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-    }
-  };
-
   const handleBarCodeScanned = async ({ data }) => {
+    setScanned(true);
     setScanning(false);
     // Assume data is user ID or phone number
     const connectedUser = await UserService.findUserByIdOrPhone(data);
@@ -61,22 +47,23 @@ export default function QRCodeScreen() {
       <Card style={styles.card}>
         <Card.Title title="Your QR Code" />
         <Card.Content>
-          {qrCodeDataUrl && (
-            <Image 
-              source={{ uri: qrCodeDataUrl }} 
-              style={styles.qrCode} 
-              resizeMode="contain"
+          {user && (
+            <QRCodeSVG
+              value={user.id || user.phoneNumber || 'unknown'}
+              size={200}
             />
           )}
         </Card.Content>
       </Card>
-      <Button mode="contained" onPress={() => setScanning(!scanning)} style={styles.button}>
+      <Button mode="contained" onPress={() => { setScanning(!scanning); setScanned(false); }} style={styles.button}>
         {scanning ? 'Stop Scanning' : 'Scan QR Code'}
       </Button>
       {scanning && (
-        <BarCodeScanner
-          onBarCodeScanned={handleBarCodeScanned}
+        <Camera
+          ref={cameraRef}
           style={styles.scanner}
+          type="back"
+          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
         />
       )}
     </View>
@@ -88,5 +75,4 @@ const styles = StyleSheet.create({
   card: { marginBottom: 24, width: '100%', alignItems: 'center' },
   button: { marginVertical: 16 },
   scanner: { width: 300, height: 300, marginTop: 16 },
-  qrCode: { width: 200, height: 200 },
 }); 

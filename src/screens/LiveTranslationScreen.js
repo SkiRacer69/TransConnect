@@ -8,15 +8,15 @@ import {
   Animated,
   ScrollView,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import { Audio } from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
 import * as Speech from 'expo-speech';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { translationService } from '../services/translationService';
-import { speechService } from '../services/speechService';
-import { SafeAreaWrapper } from '../components/SafeAreaWrapper';
+import translationService from '../services/translationService';
+import speechService from '../services/speechService';
+import SafeAreaWrapper from '../components/SafeAreaWrapper';
 import {
   Card,
   Button,
@@ -240,18 +240,13 @@ export default function LiveTranslationScreen() {
     try {
       setIsTranslating(true);
       
-      // Read the audio file
-      const audioData = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
       // Transcribe using OpenAI Whisper
-      const transcription = await speechService.transcribeAudio(audioData);
+      const transcription = await speechService.transcribeAudio(uri);
       
-      if (transcription) {
-        setCurrentText(transcription);
+      if (transcription && transcription.success) {
+        setCurrentText(transcription.text);
         // Translate the transcribed text
-        await translateText(transcription);
+        await translateText(transcription.text);
       } else {
         setCurrentText('Could not transcribe audio. Please try again.');
         setIsTranslating(false);
@@ -268,13 +263,13 @@ export default function LiveTranslationScreen() {
     try {
       setIsTranslating(true);
       
-      const translation = await translationService.translate(text, sourceLanguage, targetLanguage);
+      const translation = await translationService.translateText(text, sourceLanguage, targetLanguage);
       
-      if (translation) {
-        setTranslatedText(translation);
+      if (translation && translation.success) {
+        setTranslatedText(translation.translatedText);
         // Save to history
-        await saveToHistory(text, translation, 'voice');
-        await afterTranslate(minutesUsed);
+        await saveToHistory(text, translation.translatedText, 'voice');
+        await afterTranslate(1); // Use 1 minute as default translation time
       } else {
         setTranslatedText('Translation failed. Please try again.');
       }
