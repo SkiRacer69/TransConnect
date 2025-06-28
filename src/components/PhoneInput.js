@@ -4,9 +4,9 @@ import { TextInput, Button, Portal, Modal, List, Searchbar } from 'react-native-
 import { countryCodes, defaultCountryCode } from '../data/countryCodes';
 
 const PhoneInput = ({ 
-  value, 
-  onChangeText, 
-  error, 
+  value = '', 
+  onChangeText = () => {}, 
+  error = false, 
   label = "Phone Number", 
   placeholder = "Enter phone number",
   style,
@@ -36,21 +36,29 @@ const PhoneInput = ({
   );
 
   const handleCountrySelect = (country) => {
-    setSelectedCountry(country);
-    setShowCountryPicker(false);
-    setSearchQuery('');
-    // Update the full phone number when country changes
-    const fullNumber = country.code + localValue;
-    onChangeText(fullNumber);
+    try {
+      setSelectedCountry(country);
+      setShowCountryPicker(false);
+      setSearchQuery('');
+      // Update the full phone number when country changes
+      const fullNumber = country.code + localValue;
+      onChangeText(fullNumber);
+    } catch (error) {
+      console.error('Error selecting country:', error);
+    }
   };
 
   const handlePhoneChange = (text) => {
-    // Remove any non-digit characters from the input
-    const cleanNumber = text.replace(/\D/g, '');
-    setLocalValue(cleanNumber);
-    // Combine country code with the clean number
-    const fullNumber = selectedCountry.code + cleanNumber;
-    onChangeText(fullNumber);
+    try {
+      // Remove any non-digit characters from the input
+      const cleanNumber = text.replace(/\D/g, '');
+      setLocalValue(cleanNumber);
+      // Combine country code with the clean number
+      const fullNumber = selectedCountry.code + cleanNumber;
+      onChangeText(fullNumber);
+    } catch (error) {
+      console.error('Error changing phone number:', error);
+    }
   };
 
   return (
@@ -62,7 +70,7 @@ const PhoneInput = ({
           style={styles.countryButton}
           contentStyle={styles.countryButtonContent}
         >
-          {selectedCountry.flag} {selectedCountry.code}
+          {selectedCountry?.flag || '🇺🇸'} {selectedCountry?.code || '+1'}
         </Button>
         
         <TextInput
@@ -100,7 +108,7 @@ const PhoneInput = ({
                 onPress={() => handleCountrySelect(country)}
                 style={[
                   styles.countryItem,
-                  selectedCountry.country === country.country && styles.selectedCountry
+                  selectedCountry?.country === country.country && styles.selectedCountry
                 ]}
                 titleStyle={styles.countryItemTitle}
                 descriptionStyle={styles.countryItemDescription}

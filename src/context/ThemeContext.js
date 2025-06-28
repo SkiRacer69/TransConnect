@@ -1,8 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-
-const THEME_KEY = 'theme_preference';
+import React, { createContext, useContext, useState } from 'react';
 
 const ThemeContext = createContext();
 
@@ -16,43 +12,31 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadThemePreference();
-  }, []);
-
-  const loadThemePreference = async () => {
-    try {
-      const savedTheme = await AsyncStorage.getItem(THEME_KEY);
-      if (savedTheme !== null) {
-        setIsDarkMode(savedTheme === 'dark');
-      }
-    } catch (error) {
-      console.error('Error loading theme preference:', error);
-    } finally {
-      setLoading(false);
-    }
+  const theme = {
+    colors: {
+      primary: '#1976D2',
+      secondary: '#424242',
+      background: isDarkMode ? '#121212' : '#f5f5f5',
+      surface: isDarkMode ? '#1e1e1e' : '#ffffff',
+      surfaceVariant: isDarkMode ? '#2d2d2d' : '#f5f5f5',
+      onSurface: isDarkMode ? '#ffffff' : '#000000',
+      onBackground: isDarkMode ? '#ffffff' : '#000000',
+      error: '#B00020',
+      success: '#4CAF50',
+      warning: '#FF9800',
+    },
+    isDarkMode,
   };
 
-  const toggleTheme = async () => {
-    try {
-      const newTheme = !isDarkMode;
-      setIsDarkMode(newTheme);
-      await AsyncStorage.setItem(THEME_KEY, newTheme ? 'dark' : 'light');
-    } catch (error) {
-      console.error('Error saving theme preference:', error);
-    }
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
   };
-
-  // Ensure theme is always available
-  const theme = isDarkMode ? MD3DarkTheme : MD3LightTheme;
 
   const value = {
+    theme,
     isDarkMode,
     toggleTheme,
-    theme,
-    loading,
   };
 
   return (

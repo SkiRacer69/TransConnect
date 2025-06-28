@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { Camera } from 'expo-camera';
-import QRCodeSVG from 'react-native-qrcode-svg';
+import QRCode from 'react-native-qrcode-svg';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { Card, Button } from 'react-native-paper';
@@ -48,7 +48,7 @@ export default function QRCodeScreen() {
         <Card.Title title="Your QR Code" />
         <Card.Content>
           {user && (
-            <QRCodeSVG
+            <QRCode
               value={user.id || user.phoneNumber || 'unknown'}
               size={200}
             />

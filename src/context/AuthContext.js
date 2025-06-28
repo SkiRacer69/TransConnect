@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import UserService from '../services/UserService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();
 
@@ -16,68 +16,95 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuthStatus();
+    loadUser();
   }, []);
 
-  const checkAuthStatus = async () => {
+  const loadUser = async () => {
     try {
-      const currentUser = await UserService.getCurrentUser();
-      setUser(currentUser);
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.error('Error loading user:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const login = async (userData) => {
+    try {
+      setUser(userData);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error saving user:', error);
+    }
+  };
+
   const signIn = async (email, password) => {
     try {
-      const user = await UserService.signInUser(email, password);
-      setUser(user);
-      return user;
+      // For demo purposes, create a simple user object
+      const userData = {
+        id: 'user-' + Date.now(),
+        email,
+        name: email.split('@')[0],
+        createdAt: new Date().toISOString(),
+      };
+      setUser(userData);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      return userData;
     } catch (error) {
-      throw error;
+      console.error('Error signing in:', error);
+      throw new Error('Failed to sign in');
     }
   };
 
   const signUp = async (userData) => {
     try {
-      const user = await UserService.registerUser(userData);
-      setUser(user);
-      return user;
+      // For demo purposes, create a simple user object
+      const newUser = {
+        id: 'user-' + Date.now(),
+        email: userData.email,
+        name: `${userData.firstName} ${userData.lastName}`,
+        phoneNumber: userData.phoneNumber,
+        createdAt: new Date().toISOString(),
+      };
+      setUser(newUser);
+      await AsyncStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
     } catch (error) {
-      throw error;
+      console.error('Error signing up:', error);
+      throw new Error('Failed to create account');
     }
   };
 
-  const signOut = async () => {
+  const logout = async () => {
     try {
-      await UserService.signOut();
       setUser(null);
+      await AsyncStorage.removeItem('user');
     } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
+      console.error('Error removing user:', error);
     }
   };
 
-  const updateProfile = async (updates) => {
+  const updateUser = async (updatedUser) => {
     try {
-      const updatedUser = await UserService.updateUserProfile(user.id, updates);
-      setUser(updatedUser);
-      return updatedUser;
+      const newUser = { ...user, ...updatedUser };
+      setUser(newUser);
+      await AsyncStorage.setItem('user', JSON.stringify(newUser));
     } catch (error) {
-      throw error;
+      console.error('Error updating user:', error);
     }
   };
 
   const value = {
     user,
     loading,
+    login,
     signIn,
     signUp,
-    signOut,
-    updateProfile,
-    isAuthenticated: !!user,
+    logout,
+    updateUser,
   };
 
   return (

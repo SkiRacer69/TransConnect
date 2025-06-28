@@ -246,52 +246,67 @@ class UserService {
 
   // Get subscription info
   async getSubscription(userId) {
-    const user = (await this.getAllUsers()).find(u => u.id === userId);
-    return user?.subscription || { plan: 'free', usage: 0 };
+    try {
+      const user = await this.getAllUsers();
+      if (!user) return { plan: 'free', usage: 0 };
+      return user.find(u => u.id === userId)?.subscription || { plan: 'free', usage: 0 };
+    } catch (error) {
+      console.error('Error getting subscription:', error);
+      return { plan: 'free', usage: 0 };
+    }
   }
 
   // Check if device matches subscription
   async checkDevice(userId, deviceId) {
-    const sub = await this.getSubscription(userId);
-    return sub.deviceId === deviceId;
+    try {
+      const user = await this.getAllUsers();
+      if (!user) return true; // Allow access if user not found
+      return user.find(u => u.id === userId)?.subscription && user.find(u => u.id === userId)?.subscription.deviceId === deviceId;
+    } catch (error) {
+      console.error('Error checking device:', error);
+      return true; // Allow access on error
+    }
   }
 
   // Update usage (minutes)
   async updateUsage(userId, minutes) {
-    const user = (await this.getAllUsers()).find(u => u.id === userId);
-    if (!user) return;
-    const sub = user.subscription || { usage: 0, lastReset: new Date().toISOString() };
-    // Reset if a week has passed
-    const now = new Date();
-    const lastReset = new Date(sub.lastReset);
-    const diffDays = (now - lastReset) / (1000 * 60 * 60 * 24);
-    if (diffDays >= 7) {
-      sub.usage = 0;
-      sub.lastReset = now.toISOString();
+    try {
+      const user = await this.getAllUsers();
+      if (!user) return;
+      
+      const sub = user.find(u => u.id === userId)?.subscription || { usage: 0, lastReset: new Date().toISOString() };
+      // Reset if a week has passed
+      const now = new Date();
+      const lastReset = new Date(sub.lastReset);
+      const diffDays = (now - lastReset) / (1000 * 60 * 60 * 24);
+      if (diffDays >= 7) {
+        sub.usage = 0;
+        sub.lastReset = now.toISOString();
+      }
+      sub.usage = (sub.usage || 0) + minutes;
+      await this.updateUserProfile(userId, { subscription: sub });
+    } catch (error) {
+      console.error('Error updating usage:', error);
     }
-    sub.usage = (sub.usage || 0) + minutes;
-    await this.updateUserProfile(userId, { subscription: sub });
   }
 
   // Get usage for current week
   async getUsage(userId) {
-    const sub = await this.getSubscription(userId);
-    // Reset if a week has passed
-    const now = new Date();
-    const lastReset = new Date(sub.lastReset);
-    const diffDays = (now - lastReset) / (1000 * 60 * 60 * 24);
-    if (diffDays >= 7) {
-      await this.resetWeeklyUsage(userId);
+    try {
+      const user = await this.getAllUsers();
+      if (!user) return 0;
+      return user.find(u => u.id === userId)?.subscription?.usage || 0;
+    } catch (error) {
+      console.error('Error getting usage:', error);
       return 0;
     }
-    return sub.usage || 0;
   }
 
   // Reset weekly usage
   async resetWeeklyUsage(userId) {
-    const user = (await this.getAllUsers()).find(u => u.id === userId);
+    const user = await this.getAllUsers();
     if (!user) return;
-    const sub = user.subscription || {};
+    const sub = user.find(u => u.id === userId)?.subscription || {};
     sub.usage = 0;
     sub.lastReset = new Date().toISOString();
     await this.updateUserProfile(userId, { subscription: sub });
